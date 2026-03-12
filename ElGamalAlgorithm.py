@@ -59,6 +59,8 @@ def main():
     # Receiver's public key: h = g^x mod q
     h = KeyGeneration.mod_exp(g, priv_key, q)
 
+    print(f"Public parameters: \nq (random prime)={q}, \ng (generator)={g}, \nh (public key)={h}")
+
     encrypted, p = encrypt(msg, q, h, g)
     print(f"Ciphertext: {encrypted}")
     print(f"Ephemeral Public Key (p): {p}")
