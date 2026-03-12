@@ -60,5 +60,7 @@ def generate_keys(q):
     if q <= 4:
         raise ValueError("q must be greater than 4 to generate a valid key.")
 
+    # the library secrets provides a secure way to generate random numbers
+    # randbelow(n) returns a random integer in the range [0, n)
     key = secrets.randbelow(q - 3) + 2      # produces values 2, 3, ..., q-2
     return key
