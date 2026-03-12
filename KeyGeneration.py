@@ -1,41 +1,38 @@
-from sympy import randprime
+import secrets
 
-from ElGamalPrivateKey import ElGamalPrivateKey
-from ElGamalPublicKey import ElGamalPublicKey
-from typing import Tuple
+def gcd(a, b):
+    """Euclidean Algorithm to find gcd."""
+    while b:
+        a, b = b, a % b
+    return a
 
-def egcd(a, b):
-    """Extended Euclidean Algorithm to find gcd and coefficients."""
-    if a == 0:
-        return b, 0, 1
-    gcd, x1, y1 = egcd(b % a, a)
-    x = y1 - (b // a) * x1
-    y = x1
-    return gcd, x, y
+# Modular Exponentiation: a^b mod m
+def mod_exp(a, b, m):
+    """Find the modular exponentiation of a under modulo m."""
+    x = 1
+    y = a
 
-def mod_inverse(a, m):
-    """Find the modular inverse of a under modulo m."""
-    gcd, x, _ = egcd(a, m)
-    if gcd != 1:
-        raise ValueError(f"No modular inverse for {a} mod {m}")
+    while b > 0:
+        if b % 2 != 0:
+            x = (x * y) % m
+        y = (y * y) % m
+        b = b // 2
+    
     return x % m
 
+def mod_inverse(x, q):
+    """Find the modular inverse of x under modulo q using Fermat's Little Theorem."""
+    return mod_exp(x, q - 2, q)
 
-def find_prime(bits: int = 256) -> int:
-    """Generate a prime number of specified bit length."""
-    return randprime(2**(bits - 1), 2**bits)
+def generate_keys(q):
+    """
+    Generate random key in [2, q-2].
+    Uses secrets module for secure random number generation.
+    :param q: The prime modulus.
+    :return: A random key in the range [2, q-2].
+    """
+    if q <= 4:
+        raise ValueError("q must be greater than 4 to generate a valid key.")
 
-def find_generator(p: int) -> int:
-    """Find a generator for the multiplicative group of integers modulo p."""
-    # For simplicity, we can use 2 as a generator for prime p > 2
-    if p > 2:
-        return 2
-    raise ValueError("Prime must be greater than 2 to find a generator.")
-
-def generate_keys(bits: int = 256) -> Tuple[ElGamalPublicKey, ElGamalPrivateKey]:
-    """Generate ElGamal public and private keys."""
-    p = find_prime(bits)
-    g = find_generator(p)
-    x = randprime(1, p - 1)  # Private key
-    y = pow(g, x, p)          # Public key
-    return ElGamalPublicKey(p, g, y), ElGamalPrivateKey(p, x)  # Return public and private keys as objects
+    key = secrets.randbelow(q - 3) + 2      # produces values 2, 3, ..., q-2
+    return key

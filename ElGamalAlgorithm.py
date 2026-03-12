@@ -1,71 +1,71 @@
-from random import random
 from typing import Tuple
-from ElGamalPrivateKey import ElGamalPrivateKey
-from ElGamalPublicKey import ElGamalPublicKey
+from sympy import randprime
 import KeyGeneration
 
-
-def encrypt(plaintext: int, public_key: ElGamalPublicKey) -> Tuple[int, int]:
+def encrypt(plaintext, q, h, g):
     """
     Encrypts a plaintext message using the ElGamal encryption algorithm.
 
     :param plaintext: The message to be encrypted, represented as an integer.
-    :param public_key: The recipient's public key, which includes the prime modulus (p), generator (g), and public key (y).
-    :return: A tuple containing the ciphertext components (c1, c2).
+    :param q: The prime modulus.
+    :param h: The recipient's public key.
+    :param g: The generator.
+    :return: A tuple containing the ciphertext components (c2, p).
     """
-    p = public_key.p
-    g = public_key.g
-    y = public_key.y
+    # Convert plaintext to bytes for encryption
+    msg_bytes = plaintext.encode('utf-8')
 
-    # Step 1: Choose a random integer k in the range [1, p-2]
-    k = random.randint(1, p - 2)
+    k = KeyGeneration.generate_keys(q)      # ephemeral private key for sender (per message)
+    s = KeyGeneration.mod_exp(h, k, q)      # shared secret = h^k mod q
+    p = KeyGeneration.mod_exp(g, k, q)      # ephemeral public key = g^k mod q (aka ciphertext c1)
 
-    # Step 2: Compute c1 = g^k mod p
-    c1 = pow(g, k, p)
+    # Encrypt the message using the shared secret: c2 = (s * msg_bytes) mod q
+    c2 = [(b * s) % q for b in msg_bytes]
 
-    # Step 3: Compute c2 = (y^k * plaintext) mod p
-    c2 = (pow(y, k, p) * plaintext) % p
+    return c2, p
 
-    return c1, c2
-
-def decrypt(ciphertext: Tuple[int, int], private_key: ElGamalPrivateKey) -> int:
+def decrypt(ciphertext, p, x, q):
     """
     Decrypts a ciphertext message using the ElGamal decryption algorithm.
 
-    :param ciphertext: A tuple containing the ciphertext components (c1, c2).
-    :param private_key: The recipient's private key, which includes the prime modulus (p) and private key (x).
+    :param ciphertext: A tuple containing the ciphertext components (c2, p).
+    :param p: The prime modulus.
+    :param x: The recipient's private key.
+    :param q: The prime modulus.
     :return: The decrypted plaintext message as an integer.
     """
-    c1, c2 = ciphertext
-    p = private_key.p
-    x = private_key.x
+    # Receiver recomputes the shared secret: s = p^x mod q
+    s = KeyGeneration.mod_exp(p, x, q)
+    s_inv = KeyGeneration.mod_inverse(s, q)  # Compute the modular inverse of s
 
-    # Step 1: Compute s = c1^x mod p
-    s = pow(c1, x, p)
-
-    # Step 2: Compute the modular inverse of s modulo p
-    s_inv = KeyGeneration.mod_inverse(s, p)
-
-    # Step 3: Compute plaintext = (c2 * s_inv) mod p
-    plaintext = (c2 * s_inv) % p
+    # Decrypt the message: plaintext = (c2 * s_inv) mod q
+    decrypted_bytes = bytes([(c * s_inv) % q for c in ciphertext])
+    plaintext = decrypted_bytes.decode('utf-8')
 
     return plaintext
 
-
 def main():
-    # Generate keys
-    public_key, private_key = KeyGeneration.generate_keys()
+    msg = str(input("Enter a message to encrypt: "))
 
-    # Example plaintext message (as an integer)
-    plaintext = 12345
+    # Generate a prime modulus q
+    q = randprime(2**255, 2**256)  # Using a large prime for better security
 
-    # Encrypt the plaintext
-    ciphertext = encrypt(plaintext, public_key)
-    print(f"Ciphertext: {ciphertext}")
+    # Pick g in [2, q-2]
+    g = KeyGeneration.generate_keys(q)
 
-    # Decrypt the ciphertext
-    decrypted_plaintext = decrypt(ciphertext, private_key)
-    print(f"Decrypted plaintext: {decrypted_plaintext}")
+    # Receiver's private key
+    priv_key = KeyGeneration.generate_keys(q)
+
+    # Receiver's public key: h = g^x mod q
+    h = KeyGeneration.mod_exp(g, priv_key, q)
+
+    encrypted, p = encrypt(msg, q, h, g)
+    print(f"Ciphertext: {encrypted}")
+    print(f"Ephemeral Public Key (p): {p}")
+
+    decrypted = decrypt(encrypted, p, priv_key, q)
+    print(f"Decrypted message: {decrypted}")
+
 
 if __name__ == "__main__":
     main()
