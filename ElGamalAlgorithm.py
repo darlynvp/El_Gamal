@@ -6,7 +6,7 @@ def encrypt(plaintext, q, h, g):
     """
     Encrypts a plaintext message using the ElGamal encryption algorithm.
 
-    :param plaintext: The message to be encrypted, represented as an integer.
+    :param plaintext: The message to be encrypted.
     :param q: The prime modulus.
     :param h: The recipient's public key.
     :param g: The generator.
