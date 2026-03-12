@@ -1,11 +1,5 @@
 import secrets
 
-def gcd(a, b):
-    """Euclidean Algorithm to find gcd."""
-    while b:
-        a, b = b, a % b
-    return a
-
 def extended_gcd(a, b):
     """
     Extended Euclidean Algorithm to find gcd and coefficients.
